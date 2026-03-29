@@ -245,7 +245,7 @@ Response:
 Собрать сервис:
 
 ```bash
-docker compose up --build -d
+docker compose up 
 bash tests/run_all.sh
 docker compose down
 ```
