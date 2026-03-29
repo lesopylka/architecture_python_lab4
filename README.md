@@ -205,6 +205,7 @@ Response:
 ./users.sh
 ./posts.sh
 ./messages.sh
+./run_all.sh
 ```
 
 ## HTTP статус-коды
@@ -244,11 +245,7 @@ Response:
 Собрать сервис:
 
 ```bash
-cd <service>/build
-cmake ..
-ninja
-./auth_service --config ../configs/static_config.yaml
-./user_service --config ../configs/static_config.yaml
-./wall_service --config ../configs/static_config.yaml
-./chat_service --config ../configs/static_config.yaml
+docker compose up --build -d
+bash tests/run_all.sh
+docker compose down
 ```
