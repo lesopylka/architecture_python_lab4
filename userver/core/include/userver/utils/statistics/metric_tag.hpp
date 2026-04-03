@@ -1,0 +1,62 @@
+#pragma once
+
+/// @file userver/utils/statistics/metric_tag.hpp
+/// @brief @copybrief utils::statistics::MetricTag
+
+#include <string>
+#include <typeinfo>
+#include <utility>
+
+#include <userver/utils/statistics/metric_tag_impl.hpp>
+
+USERVER_NAMESPACE_BEGIN
+
+namespace utils::statistics {
+
+/// @brief Metric description and registration in a declarative way
+///
+/// Use `MetricTag<Metric>` for declarative style of metric registration and
+/// call `MetricStorage::GetMetric` for accessing metric data. Please
+/// note that metrics can be accessed from multiple coroutines, so `Metric` must
+/// be thread-safe (e.g. std::atomic<T>, rcu::Variable<T>, rcu::RcuMap<T>,
+/// concurrent::Variable<T>, etc.).
+///
+/// A custom metric type must be default-constructible and have the following
+/// free function defined:
+/// @code
+/// void DumpMetric(utils::statistics::Writer&, const Metric&)
+/// @endcode
+///
+/// For alerts consider using alerts::Source.
+///
+/// ## Example usage:
+///
+/// @snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - Stats tag
+/// where `Stats` are defined in a following way:
+/// @snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - Stats definition
+///
+/// For a full usage example see @ref samples/tcp_full_duplex_service/main.cpp
+///
+/// For introduction to metrics see @ref scripts/docs/en/userver/metrics.md
+template <typename Metric>
+class MetricTag final {
+public:
+    /// Register metric, passing a copy of `args` to the constructor of `Metric`
+    template <typename... Args>
+    explicit MetricTag(std::string path, Args&&... args)
+        : key_{typeid(Metric), std::move(path)}
+    {
+        impl::RegisterMetricInfo(key_, impl::MakeMetricFactory<Metric>(std::forward<Args>(args)...));
+    }
+
+    std::string GetPath() const { return key_.path; }
+
+private:
+    friend class MetricsStorage;
+
+    const impl::MetricKey key_;
+};
+
+}  // namespace utils::statistics
+
+USERVER_NAMESPACE_END

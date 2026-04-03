@@ -1,0 +1,49 @@
+#pragma once
+
+/// @file userver/fs/read.hpp
+/// @brief functions for asynchronous file read operations
+
+#include <string>
+
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/fs/file_info_with_data.hpp>
+#include <userver/fs/path_utils.hpp>
+#include <userver/fs/settings_read_file.hpp>
+
+USERVER_NAMESPACE_BEGIN
+
+/// @brief filesystem support
+namespace fs {
+
+/// @brief Returns files from recursively traversed directory
+/// @param async_tp TaskProcessor for synchronous waiting
+/// @param path to directory to traverse recursively
+/// @param flags settings read files
+/// @returns map with relative to `path` filepaths and file info
+/// @throws std::runtime_error if read fails for any reason (e.g. no such file,
+/// read error, etc.),
+FileInfoWithDataMap ReadRecursiveFilesInfoWithData(
+    engine::TaskProcessor& async_tp,
+    const std::string& path,
+    SettingReadFileFlags flags = {SettingsReadFile::kSkipHidden}
+);
+
+/// @brief Reads file contents asynchronously
+/// @param async_tp TaskProcessor for synchronous waiting
+/// @param path file to open
+/// @returns file contents
+/// @throws std::runtime_error if read fails for any reason (e.g. no such file,
+/// read error, etc.),
+std::string ReadFileContents(engine::TaskProcessor& async_tp, const std::string& path);
+
+/// @brief Checks whether the file exists asynchronously
+/// @param async_tp TaskProcessor for synchronous waiting
+/// @param path file path to check
+/// @returns true if file exists, false if file doesn't exist
+/// @throws std::runtime_error if something goes wrong (e.g. out of file
+/// descriptors)
+bool FileExists(engine::TaskProcessor& async_tp, const std::string& path);
+
+}  // namespace fs
+
+USERVER_NAMESPACE_END
