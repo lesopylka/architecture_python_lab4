@@ -1,4 +1,4 @@
-FROM userver-base
+FROM ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest
 
 WORKDIR /app
 COPY . .
