@@ -5,10 +5,12 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(DownloadUserver)
 
 find_package(
-    userver
-    COMPONENTS core #
-    QUIET
+  userver
+  COMPONENTS core postgresql
+  QUIET
 )
+
+
 if(NOT userver_FOUND)
     # Tries TRY_DIR first, falls back to downloading userver from GitHub using CPM.
     download_userver(TRY_DIR third_party/userver)
@@ -23,10 +25,13 @@ add_library(
     ${PROJECT_NAME}_objs OBJECT
     src/greeting.cpp #
     src/hello.cpp #
+    src/users.cpp #
 )
 target_link_libraries(
-    ${PROJECT_NAME}_objs
-    PUBLIC userver::core #
+  ${PROJECT_NAME}_objs
+  PUBLIC
+  userver::core
+  userver::postgresql
 )
 
 

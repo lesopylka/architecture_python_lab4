@@ -1,11 +1,14 @@
 #include "posts.hpp"
 
+#include <string>
+
 #include <userver/formats/json.hpp>
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_status.hpp>
 #include <userver/storages/postgres/component.hpp>
 #include <userver/storages/postgres/cluster.hpp>
+#include <userver/components/component_context.hpp>
 
 PostsHandler::PostsHandler(
     const userver::components::ComponentConfig& config,
@@ -17,7 +20,7 @@ std::string PostsHandler::HandleRequestThrow(
     const userver::server::http::HttpRequest& request,
     userver::server::request::RequestContext&) const {
 
-    auto token = request.GetHeader("Authorization");
+    const auto token = request.GetHeader("Authorization");
     if (token != "Bearer 123") {
         request.SetResponseStatus(userver::server::http::HttpStatus::kUnauthorized);
         return R"({"error":"Unauthorized"})";

@@ -1,12 +1,13 @@
 echo "Create user"
-curl -X POST http://localhost:8082/users \
--d '{"login":"alice"}'
+curl -i -X POST http://localhost:8082/users \
+  -H "Content-Type: application/json" \
+  -d '{"login":"alice2","email":"alice2@example.com","password":"123456","first_name":"Alice","last_name":"Smith"}'
 echo -e "\n"
 
 echo "Get users"
-curl http://localhost:8082/users
+curl -i http://localhost:8082/users
 echo -e "\n"
 
 echo "Find by login"
-curl "http://localhost:8082/users?login=alice"
+curl -i "http://localhost:8082/users?login=alice"
 echo -e "\n"

@@ -6,12 +6,10 @@
 #include <userver/congestion_control/component.hpp>
 #include <userver/server/handlers/ping.hpp>
 #include <userver/server/handlers/tests_control.hpp>
+#include <userver/storages/postgres/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
-
-
 #include <userver/utils/daemon_run.hpp>
 
-#include <hello.hpp>
 #include "users.cpp"
 
 int main(int argc, char* argv[]) {
@@ -23,7 +21,8 @@ int main(int argc, char* argv[]) {
             .Append<userver::clients::dns::Component>()
             .Append<userver::server::handlers::TestsControl>()
             .Append<userver::congestion_control::Component>()
-            .Append<UsersHandler>();  
+            .Append<userver::components::Postgres>("postgres-db")
+            .Append<UsersHandler>();
 
     return userver::utils::DaemonMain(argc, argv, component_list);
 }

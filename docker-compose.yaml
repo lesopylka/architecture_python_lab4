@@ -1,32 +1,67 @@
+version: "3.9"
+
 services:
+  base:
+    build:
+      context: .
+      dockerfile: Dockerfile.base
+    image: userver-base
+
+  postgres:
+    image: postgres:16
+    container_name: social-network-postgres
+    environment:
+      POSTGRES_DB: social_network
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./db/data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d social_network"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   auth:
     build:
       context: ./auth-service
-    security_opt:
-      - seccomp=unconfined
+    depends_on:
+      - base
     ports:
       - "8081:8081"
 
   users:
     build:
       context: ./user-service
-    security_opt:
-      - seccomp=unconfined
+    depends_on:
+      postgres:
+        condition: service_healthy
+      base:
+        condition: service_started
     ports:
       - "8082:8082"
-
-  chat:
-    build:
-      context: ./chat-service
-    security_opt:
-      - seccomp=unconfined
-    ports:
-      - "8084:8084"
 
   wall:
     build:
       context: ./wall-service
-    security_opt:
-      - seccomp=unconfined
+    depends_on:
+      postgres:
+        condition: service_healthy
+      base:
+        condition: service_started
     ports:
       - "8083:8083"
+
+  chat:
+    build:
+      context: ./chat-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      base:
+        condition: service_started
+    ports:
+      - "8084:8084"
