@@ -4,7 +4,7 @@ from typing import Optional
 
 from bson import ObjectId
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from pymongo import MongoClient
 
 
@@ -48,7 +48,7 @@ class UserCreate(BaseModel):
     first_name: str
     last_name: str
     age: Optional[int] = None
-    interests: list[str] = []
+    interests: list[str] = Field(default_factory=list)
 
 
 class UserUpdate(BaseModel):
@@ -61,7 +61,7 @@ class UserUpdate(BaseModel):
 class PostCreate(BaseModel):
     author_id: str
     content: str
-    tags: list[str] = []
+    tags: list[str] = Field(default_factory=list)
 
 
 class MessageCreate(BaseModel):
@@ -105,15 +105,17 @@ def update_user(user_id: str, data: UserUpdate):
     if not update_data:
         raise HTTPException(status_code=400, detail="No fields to update")
 
+    user_object_id = oid(user_id)
+
     result = db.users.update_one(
-        {"_id": oid(user_id)},
+        {"_id": user_object_id},
         {"$set": update_data}
     )
 
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
 
-    user = db.users.find_one({"_id": oid(user_id)})
+    user = db.users.find_one({"_id": user_object_id})
     return to_json(user)
 
 
@@ -143,13 +145,14 @@ def get_posts(author_id: Optional[str] = None, tag: Optional[str] = None):
 
 @app.post("/posts")
 def create_post(post: PostCreate):
-    author = db.users.find_one({"_id": oid(post.author_id)})
+    author_object_id = oid(post.author_id)
+    author = db.users.find_one({"_id": author_object_id})
 
     if not author:
         raise HTTPException(status_code=404, detail="Author not found")
 
     doc = {
-        "author_id": oid(post.author_id),
+        "author_id": author_object_id,
         "content": post.content,
         "tags": post.tags,
         "likes": [],
@@ -251,15 +254,17 @@ def create_message(message: MessageCreate):
 
 @app.patch("/messages/{message_id}/read")
 def mark_message_as_read(message_id: str):
+    message_object_id = oid(message_id)
+
     result = db.messages.update_one(
-        {"_id": oid(message_id)},
+        {"_id": message_object_id},
         {"$set": {"is_read": True}}
     )
 
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Message not found")
 
-    message = db.messages.find_one({"_id": oid(message_id)})
+    message = db.messages.find_one({"_id": message_object_id})
     return to_json(message)
 
 
@@ -277,6 +282,11 @@ def delete_message(message_id: str):
 def posts_by_users():
     pipeline = [
         {
+            "$match": {
+                "content": {"$ne": ""}
+            }
+        },
+        {
             "$group": {
                 "_id": "$author_id",
                 "posts_count": {"$sum": 1},
@@ -291,7 +301,9 @@ def posts_by_users():
                 "as": "author"
             }
         },
-        {"$unwind": "$author"},
+        {
+            "$unwind": "$author"
+        },
         {
             "$project": {
                 "_id": 0,
