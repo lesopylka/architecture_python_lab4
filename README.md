@@ -4,33 +4,28 @@
 
 - [Домашнее задание 04: Проектирование и работа с MongoDB](#домашнее-задание-04-проектирование-и-работа-с-mongodb)
   - [Задание](#задание)
-  - [Проектирование документной модели](#проектирование-документной-модели)
-    - [Используемые коллекции:](#используемые-коллекции)
+  - [Структура базы данных](#структура-базы-данных)
     - [Коллекция users](#коллекция-users)
     - [Коллекция posts](#коллекция-posts)
     - [Коллекция messages](#коллекция-messages)
-    - [Обоснование выбора структуры](#обоснование-выбора-структуры)
-  - [Создание базы данных и коллекций](#создание-базы-данных-и-коллекций)
-    - [docker-compose (фрагмент)](#docker-compose-фрагмент)
-    - [Инициализация данных](#инициализация-данных)
-  - [Реализация CRUD операций](#реализация-crud-операций)
+  - [embedded и references](#embedded-и-references)
+  - [MongoDB и Docker](#mongodb-и-docker)
+  - [CRUD операции](#crud-операции)
     - [Create](#create)
     - [Read](#read)
     - [Update](#update)
-    - [Операции с массивами](#операции-с-массивами)
     - [Delete](#delete)
+  - [Работа с массивами](#работа-с-массивами)
   - [Валидация схем](#валидация-схем)
-    - [Пример (users):](#пример-users)
-    - [Проверка валидации](#проверка-валидации)
-  - [Агрегации](#агрегации)
-    - [Назначение:](#назначение)
-  - [Подключение MongoDB к API](#подключение-mongodb-к-api)
-    - [Реализованные эндпоинты:](#реализованные-эндпоинты)
+  - [Aggregation Pipeline](#aggregation-pipeline)
+  - [API](#api)
+    - [Реализованные эндпоинты](#реализованные-эндпоинты)
       - [Users](#users)
       - [Posts](#posts)
       - [Messages](#messages)
+  - [Запуск проекта](#запуск-проекта)
+  - [Проверка API](#проверка-api)
   - [Вывод](#вывод)
-  - [Запуск](#запуск)
 
 
 ## Задание
@@ -71,86 +66,88 @@
  - Реализуйте API для одной или нескольких сущностей из второго домашнего задания
 для работы с MongoDB
 
-## Проектирование документной модели
+## Структура базы данных
 
-В рамках работы была спроектирована документная модель базы данных для социальной сети.
+В проекте используются 3 основные коллекции:
 
-### Используемые коллекции:
+- `users` — пользователи
+- `posts` — публикации
+- `messages` — личные сообщения
 
-* `users` — пользователи системы
-* `posts` — публикации пользователей
-* `messages` — личные сообщения
+### Коллекция users
 
-
-###   Коллекция users  
+Хранит информацию о пользователях системы.
 
 ```json
 {
-  "_id": ObjectId,
-  "login": string,
-  "email": string,
-  "password": string,
-  "first_name": string,
-  "last_name": string,
-  "age": number,
-  "interests": [string],
-  "created_at": date
+  "_id": "ObjectId",
+  "login": "string",
+  "email": "string",
+  "password": "string",
+  "first_name": "string",
+  "last_name": "string",
+  "age": "number",
+  "interests": ["string"],
+  "created_at": "date"
 }
-```
+````
 
- 
+### Коллекция posts
 
-###   Коллекция posts  
+Хранит посты пользователей, лайки и комментарии.
 
 ```json
 {
-  "_id": ObjectId,
-  "author_id": ObjectId,
-  "content": string,
-  "tags": [string],
-  "likes": [ObjectId],
+  "_id": "ObjectId",
+  "author_id": "ObjectId",
+  "content": "string",
+  "tags": ["string"],
+  "likes": ["ObjectId"],
   "comments": [
     {
-      "user_id": ObjectId,
-      "text": string,
-      "created_at": date
+      "user_id": "ObjectId",
+      "text": "string",
+      "created_at": "date"
     }
   ],
-  "created_at": date
+  "created_at": "date"
 }
 ```
 
- 
+### Коллекция messages
 
-###   Коллекция messages  
+Хранит личные сообщения между пользователями.
 
 ```json
 {
-  "_id": ObjectId,
-  "from_user_id": ObjectId,
-  "to_user_id": ObjectId,
-  "text": string,
-  "is_read": boolean,
-  "created_at": date
+  "_id": "ObjectId",
+  "from_user_id": "ObjectId",
+  "to_user_id": "ObjectId",
+  "text": "string",
+  "is_read": "boolean",
+  "created_at": "date"
 }
 ```
 
  
 
-###   Обоснование выбора структуры  
+## embedded и references
 
-* Комментарии (`comments`) реализованы как   embedded documents  , так как они логически принадлежат посту и часто читаются вместе с ним.
-* Лайки (`likes`) реализованы как массив `ObjectId`, чтобы избежать дублирования данных пользователей.
-* Связи между коллекциями (`author_id`, `from_user_id`, `to_user_id`) реализованы через   references  , так как пользователи являются отдельной сущностью.
-* Такой подход позволяет балансировать между производительностью и нормализацией данных.
+Комментарии были сделаны как embedded documents внутри поста, потому что они напрямую относятся к конкретному посту и обычно читаются вместе с ним.
+
+Пользователи хранятся отдельно, поэтому в `posts` и `messages` используются references (`author_id`, `from_user_id`, `to_user_id`).
+
+Лайки реализованы как массив `ObjectId`, чтобы не дублировать данные пользователей.
+
+Такой подход позволяет сделать структуру более удобной и уменьшить дублирование данных.
 
  
 
-## Создание базы данных и коллекций  
+## MongoDB и Docker
 
-База данных MongoDB была развернута с использованием Docker.
+MongoDB запускается через Docker.
 
-### docker-compose (фрагмент)
+Фрагмент `docker-compose.yml`:
 
 ```yaml
 mongo:
@@ -163,11 +160,7 @@ mongo:
     - mongo_data:/data/db
 ```
 
- 
-
-### Инициализация данных
-
-При старте контейнера выполняется файл:
+При запуске контейнера автоматически выполняется файл:
 
 ```bash
 mongo/mongo-init.js
@@ -176,27 +169,18 @@ mongo/mongo-init.js
 В нём:
 
 * создаются коллекции
-* задаётся валидация
-* добавляется не менее 10 документов в каждую коллекцию
-
-Используются типы:
-
-* `String`
-* `Number`
-* `Date`
-* `Array`
-* `ObjectId`
-* `Object`
+* добавляются тестовые данные
+* создаётся валидация схем
 
  
 
-##  Реализация CRUD операций
+## CRUD операции
 
-CRUD операции реализованы через API (FastAPI).
+CRUD операции реализованы через FastAPI.
 
- 
+### Create
 
-###   Create  
+Создание пользователей, постов и сообщений:
 
 ```python
 db.users.insert_one({...})
@@ -204,58 +188,62 @@ db.posts.insert_one({...})
 db.messages.insert_one({...})
 ```
 
- 
+### Read
 
-###   Read  
-
-Примеры:
+Поиск данных с условиями:
 
 ```python
 db.users.find({"login": {"$eq": "alice"}})
 
-db.users.find({"age": {"$gt": 25}})
+db.users.find({"age": {"$gt": 20}})
 
 db.posts.find({"tags": {"$in": ["tech"]}})
 ```
 
- 
+### Update
 
-###   Update  
+Обновление данных:
 
 ```python
 db.users.update_one(
   {"_id": ObjectId(user_id)},
-  {"$set": {"age": 30}}
+  {"$set": {"age": 25}}
 )
 ```
 
- 
+### Delete
 
-###   Операции с массивами  
+Удаление документов:
 
 ```python
-$addToSet  → лайк
-$pull      → убрать лайк
-$push      → добавить комментарий
+db.messages.delete_one({"_id": ObjectId(message_id)})
 ```
 
  
 
-###   Delete  
+## Работа с массивами
+
+Для работы с лайками и комментариями использовались специальные операторы MongoDB:
 
 ```python
-db.users.delete_one({"_id": ObjectId(user_id)})
+$push
+$pull
+$addToSet
+```
+
+Пример добавления лайка:
+
+```python
+{"$addToSet": {"likes": user_id}}
 ```
 
  
 
-## Валидация схем  
+## Валидация схем
 
-Для коллекции `users`, `posts`, `messages` реализована валидация через `$jsonSchema`.
+Для коллекций была настроена валидация через `$jsonSchema`.
 
- 
-
-### Пример (users):
+Пример для `users`:
 
 ```json
 {
@@ -274,25 +262,21 @@ db.users.delete_one({"_id": ObjectId(user_id)})
 }
 ```
 
- 
-
-### Проверка валидации
-
-Попытка вставить неверный документ:
+Проверка валидации:
 
 ```js
-db.users.insertOne({login: "test"})
+db.users.insertOne({
+  login: "test"
+})
 ```
 
-Результат:
-
-→ ошибка валидации (ожидаемое поведение)
+MongoDB выдаёт ошибку, так как обязательные поля отсутствуют.
 
  
 
-## Агрегации  
+## Aggregation Pipeline
 
-Реализован aggregation pipeline:
+Также была реализована агрегация для подсчёта количества постов и лайков пользователей.
 
 ```python
 db.posts.aggregate([
@@ -303,23 +287,19 @@ db.posts.aggregate([
       "likes_count": {"$sum": {"$size": "$likes"}}
     }
   },
-  {"$sort": {"posts_count": -1}}
+  {
+    "$sort": {
+      "posts_count": -1
+    }
+  }
 ])
 ```
 
  
 
-### Назначение:
+## API
 
-* подсчёт количества постов
-* подсчёт лайков
-* сортировка пользователей
-
- 
-
-## Подключение MongoDB к API  
-
-MongoDB подключена через:
+MongoDB подключается через `pymongo`.
 
 ```python
 from pymongo import MongoClient
@@ -328,9 +308,7 @@ client = MongoClient("mongodb://mongo:27017")
 db = client["social_network_mongo"]
 ```
 
- 
-
-### Реализованные эндпоинты:
+### Реализованные эндпоинты
 
 #### Users
 
@@ -339,39 +317,71 @@ db = client["social_network_mongo"]
 * `PATCH /users/{id}`
 * `DELETE /users/{id}`
 
- 
-
 #### Posts
 
 * `GET /posts`
 * `POST /posts`
-* лайки и комментарии
-
- 
+* добавление лайков
+* добавление комментариев
 
 #### Messages
 
 * `GET /messages`
 * `POST /messages`
-* `PATCH /messages/{id}/read`
-* `DELETE /messages/{id}`
+* отметка сообщения как прочитанного
+* удаление сообщения
 
  
 
-##   Вывод  
+## Запуск проекта
 
-В ходе работы:
-
-* спроектирована документная модель
-* реализованы CRUD операции
-* настроена валидация схем
-* реализованы агрегации
-* разработано API для работы с MongoDB
-
-Система демонстрирует использование возможностей MongoDB для хранения и обработки данных социальной сети.
-
-## Запуск
+Запуск MongoDB и API:
 
 ```bash
-docker compose up
+docker compose up --build mongo mongo_api
 ```
+
+Если нужно полностью пересоздать базу:
+
+```bash
+docker compose down -v
+docker compose up --build mongo mongo_api
+```
+
+ 
+
+## Проверка API
+
+Получить пользователей:
+
+```bash
+curl http://localhost:8000/users
+```
+
+Получить посты:
+
+```bash
+curl http://localhost:8000/posts
+```
+
+Swagger:
+
+```text
+http://localhost:8000/docs
+```
+
+ 
+
+## Вывод
+
+В ходе работы была спроектирована документная модель MongoDB для социальной сети, реализованы CRUD операции, валидация схем и API.
+
+Были использованы различные возможности MongoDB:
+
+* embedded documents
+* references
+* aggregation pipeline
+* работа с массивами
+* json schema validation
+
+Проект показывает базовую работу с MongoDB и интеграцию базы данных с FastAPI.
